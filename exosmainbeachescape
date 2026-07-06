@@ -1,753 +1,1434 @@
-local Players = game:GetService("Players")
+ local Players = game:GetService("Players")
+
 local Workspace = game:GetService("Workspace")
+
 local RunService = game:GetService("RunService")
+
 local UserInputService = game:GetService("UserInputService")
+
 local PhysicsService = game:GetService("PhysicsService")
+
 local player = Players.LocalPlayer
 
+
 local autofarmEnabled = false
+
 local flyEnabled = false
+
 local streamerModeEnabled = false
-local removeWaterLavaEnabled = false 
-local removeSharkEnabled = false 
-local selectedAmount = "50" 
-local flySpeed = 75 
-local autofarmSpeed = 120 
+
+local removeWaterLavaEnabled = false
+
+local removeSharkEnabled = false
+
+local selectedAmount = "50"
+
+local flySpeed = 75
+
+local autofarmSpeed = 120
+
 local giveWinsFolder = Workspace:WaitForChild("GiveWins")
 
+
 local failsafeCooldown = 0
+
 local lastHealth = 100
+
 local isMoving = false
+
 local mapPlatform = nil
+
 local antiVoidPlatform = nil
 
+
 -- Kollisions-Gruppen Setup
+
 pcall(function()
-    PhysicsService:RegisterCollisionGroup("ExosPlatformGroup")
-    PhysicsService:RegisterCollisionGroup("ExosPlayerGroup")
-    PhysicsService:CollisionGroupSetCollidable("ExosPlatformGroup", "Default", false)
-    PhysicsService:CollisionGroupSetCollidable("ExosPlatformGroup", "ExosPlayerGroup", true)
+
+    PhysicsService:RegisterCollisionGroup("ExosPlatformGroup")
+
+    PhysicsService:RegisterCollisionGroup("ExosPlayerGroup")
+
+    PhysicsService:CollisionGroupSetCollidable("ExosPlatformGroup", "Default", false)
+
+    PhysicsService:CollisionGroupSetCollidable("ExosPlatformGroup", "ExosPlayerGroup", true)
+
 end)
+
 
 local function applyPlayerCollision(char)
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            pcall(function() part.CollisionGroup = "ExosPlayerGroup" end)
-        end
-    end
+
+    for _, part in pairs(char:GetDescendants()) do
+
+        if part:IsA("BasePart") then
+
+            pcall(function() part.CollisionGroup = "ExosPlayerGroup" end)
+
+        end
+
+    end
+
 end
+
 
 -- Deine exakten Wunsch-CFrames
+
 local farmCFrames = {
-    ["1"] = CFrame.new(-345.983368, 3.56175971, 0.155632243, 0.0314115696, 9.37208213e-08, 0.999506533, 1.74213657e-08, 1, -9.43145935e-08, -0.999506533, 2.0375337e-08, 0.0314115696),
-    ["3"] = CFrame.new(-604.305298, 3.56175971, 4.3941102, -0.973679125, -1.36082594e-08, -0.227923125, -5.02332043e-09, 1, -3.82460392e-08, 0.227923125, -3.60944377e-08, -0.973679125),
-    ["10"] = CFrame.new(-848.927429, 3.56175971, -1.54104829, 0.0339496285, -7.69132313e-09, 0.999423563, -7.49731721e-10, 1, 7.72122721e-09, -0.999423563, -1.01143238e-09, 0.0339496285),
-    ["20"] = CFrame.new(-1105.27234, 3.56175971, -1.52872813, 0.0427894704, -1.12243326e-08, 0.999084115, 3.13877435e-09, 1, 1.11001928e-08, -0.999084115, 2.66092837e-09, 0.0427894704),
-    ["50"] = CFrame.new(-1267.59119, 3.56175971, 201.151932, -0.999912977, -3.94116917e-09, 0.0131910369, -4.033196e-09, 1, -6.94985269e-09, -0.0131910369, -7.00245018e-09, -0.999912977),
-    ["100"] = CFrame.new(-2.83283234, 3.56175971, -47.4331589, 0.999986291, -3.01754244e-09, -0.00523622753, 2.57492205e-09, 1, -8.45371488e-08, 0.00523622753, 8.45225046e-08, 0.999986291),
-    ["150"] = CFrame.new(8.37362289, 3.56175971, -47.3451385, 0.999969125, -2.41822362e-09, -0.00785515271, 1.85997584e-09, 1, -7.10750143e-08, 0.00785515271, 7.105821e-08, 0.999969125)
+
+    ["1"] = CFrame.new(-345.983368, 3.56175971, 0.155632243, 0.0314115696, 9.37208213e-08, 0.999506533, 1.74213657e-08, 1, -9.43145935e-08, -0.999506533, 2.0375337e-08, 0.0314115696),
+
+    ["3"] = CFrame.new(-604.305298, 3.56175971, 4.3941102, -0.973679125, -1.36082594e-08, -0.227923125, -5.02332043e-09, 1, -3.82460392e-08, 0.227923125, -3.60944377e-08, -0.973679125),
+
+    ["10"] = CFrame.new(-848.927429, 3.56175971, -1.54104829, 0.0339496285, -7.69132313e-09, 0.999423563, -7.49731721e-10, 1, 7.72122721e-09, -0.999423563, -1.01143238e-09, 0.0339496285),
+
+    ["20"] = CFrame.new(-1105.27234, 3.56175971, -1.52872813, 0.0427894704, -1.12243326e-08, 0.999084115, 3.13877435e-09, 1, 1.11001928e-08, -0.999084115, 2.66092837e-09, 0.0427894704),
+
+    ["50"] = CFrame.new(-1267.59119, 3.56175971, 201.151932, -0.999912977, -3.94116917e-09, 0.0131910369, -4.033196e-09, 1, -6.94985269e-09, -0.0131910369, -7.00245018e-09, -0.999912977),
+
+    ["100"] = CFrame.new(-2.83283234, 3.56175971, -47.4331589, 0.999986291, -3.01754244e-09, -0.00523622753, 2.57492205e-09, 1, -8.45371488e-08, 0.00523622753, 8.45225046e-08, 0.999986291),
+
+    ["150"] = CFrame.new(8.37362289, 3.56175971, -47.3451385, 0.999969125, -2.41822362e-09, -0.00785515271, 1.85997584e-09, 1, -7.10750143e-08, 0.00785515271, 7.105821e-08, 0.999969125)
+
 }
+
 
 -- Zwischen-CFrame (Nur für Autofarm)
+
 local intermediateCF = CFrame.new(-1267.84583, 3.56175971, -0.124881208, 0.944269598, 5.3231477e-09, -0.329173148, -4.89690555e-09, 1, 2.1239539e-09, 0.329173148, -3.93655247e-10, 0.944269598)
 
+
 -- Plattformen CFrames
+
 local platformCFrame = CFrame.new(-223.045135, -0.621770978, -1.88963485)
+
 local antiVoidPartCFrame = CFrame.new(-605.412231, -103.817421, 0.944504619, 0.30592519, 0.000104521838, 0.952055573, 3.39804683e-05, 1, -0.000120704426, -0.952055573, 6.92778194e-05, 0.30592519)
+
 local antiVoidTargetCFrame = CFrame.new(1.16304219, 17.5780735, 0.721486151, 0.0549535193, -5.79283005e-05, 0.998488903, -3.6269168e-05, 1, 6.0012102e-05, -0.998488903, -3.95122406e-05, 0.0549535193)
 
+
 local function getTargetCFrame(amountStr)
-    for _, buttonModel in pairs(giveWinsFolder:GetChildren()) do
-        local winLabel = buttonModel:FindFirstChild("WinAmount", true)
-        if winLabel and winLabel:IsA("TextLabel") then
-            local numStr = string.match(winLabel.Text, "%d+")
-            if numStr == amountStr then
-                local touchPart = buttonModel:FindFirstChild("Touch") or buttonModel:FindFirstChildWhichIsA("BasePart", true)
-                if touchPart then
-                    return touchPart.CFrame
-                end
-            end
-        end
-    end
-    return farmCFrames[amountStr]
+
+    for _, buttonModel in pairs(giveWinsFolder:GetChildren()) do
+
+        local winLabel = buttonModel:FindFirstChild("WinAmount", true)
+
+        if winLabel and winLabel:IsA("TextLabel") then
+
+            local numStr = string.match(winLabel.Text, "%d+")
+
+            if numStr == amountStr then
+
+                local touchPart = buttonModel:FindFirstChild("Touch") or buttonModel:FindFirstChildWhichIsA("BasePart", true)
+
+                if touchPart then
+
+                    return touchPart.CFrame
+
+                end
+
+            end
+
+        end
+
+    end
+
+    return farmCFrames[amountStr]
+
 end
+
 
 local function smoothMoveTo(targetCFrame, speed, conditionCheck)
-    local character = player.Character
-    local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    if not rootPart or not humanoid then return end
 
-    isMoving = true
-    humanoid.PlatformStand = true
+    local character = player.Character
 
-    local noclipConnection
-    noclipConnection = RunService.Stepped:Connect(function()
-        if player.Character then
-            for _, part in pairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
-            end
-        end
-    end)
+    local rootPart = character and character:FindFirstChild("HumanoidRootPart")
 
-    while rootPart and rootPart.Parent and (conditionCheck == nil or conditionCheck()) do
-        local currentPos = rootPart.Position
-        local targetPos = targetCFrame.Position
-        local distance = (targetPos - currentPos).Magnitude
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 
-        if distance < 1.5 then
-            rootPart.CFrame = targetCFrame
-            break
-        end
+    if not rootPart or not humanoid then return end
 
-        local direction = (targetPos - currentPos).Unit
-        local dt = RunService.Heartbeat:Wait()
-        local moveStep = direction * math.min(speed * dt, distance)
-        
-        rootPart.CFrame = CFrame.new(currentPos + moveStep, targetPos)
-    end
 
-    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-        player.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
-    end
-    if noclipConnection then noclipConnection:Disconnect() end
-    isMoving = false
+    isMoving = true
+
+    humanoid.PlatformStand = true
+
+
+    local noclipConnection
+
+    noclipConnection = RunService.Stepped:Connect(function()
+
+        if player.Character then
+
+            for _, part in pairs(player.Character:GetDescendants()) do
+
+                if part:IsA("BasePart") then part.CanCollide = false end
+
+            end
+
+        end
+
+    end)
+
+
+    while rootPart and rootPart.Parent and (conditionCheck == nil or conditionCheck()) do
+
+        local currentPos = rootPart.Position
+
+        local targetPos = targetCFrame.Position
+
+        local distance = (targetPos - currentPos).Magnitude
+
+
+        if distance < 1.5 then
+
+            rootPart.CFrame = targetCFrame
+
+            break
+
+        end
+
+
+        local direction = (targetPos - currentPos).Unit
+
+        local dt = RunService.Heartbeat:Wait()
+
+        local moveStep = direction * math.min(speed * dt, distance)
+
+       
+
+        rootPart.CFrame = CFrame.new(currentPos + moveStep, targetPos)
+
+    end
+
+
+    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+
+        player.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
+
+    end
+
+    if noclipConnection then noclipConnection:Disconnect() end
+
+    isMoving = false
+
 end
+
 
 -- Loop für Wasser/Lava, Shark & Plattform-Management
-task.spawn(function()
-    while task.wait(0.5) do
-        pcall(function()
-            if removeWaterLavaEnabled then
-                local parts = Workspace:FindFirstChild("Parts")
-                if parts then
-                    local kp = parts:FindFirstChild("KillPart")
-                    if kp then kp:Destroy() end
-                end
-                local folder = Workspace:FindFirstChild("Folder")
-                if folder then
-                    for _, item in pairs(folder:GetChildren()) do
-                        item:Destroy()
-                    end
-                end
-                
-                -- Normale Lauf-Plattform
-                if not mapPlatform or not mapPlatform.Parent then
-                    mapPlatform = Instance.new("Part")
-                    mapPlatform.Name = "GlobalSafePlatform"
-                    mapPlatform.Size = Vector3.new(8000, 2, 8000)
-                    mapPlatform.CFrame = platformCFrame
-                    mapPlatform.Anchored = true
-                    mapPlatform.CanCollide = true
-                    mapPlatform.Transparency = 0.5
-                    mapPlatform.Material = Enum.Material.SmoothPlastic
-                    pcall(function() mapPlatform.CollisionGroup = "ExosPlatformGroup" end)
-                    mapPlatform.Parent = Workspace
-                end
 
-                -- NEU: Unsichtbarer Anti-Void Part
-                if not antiVoidPlatform or not antiVoidPlatform.Parent then
-                    antiVoidPlatform = Instance.new("Part")
-                    antiVoidPlatform.Name = "ExosAntiVoid"
-                    antiVoidPlatform.Size = Vector3.new(8000, 2, 8000)
-                    antiVoidPlatform.CFrame = antiVoidPartCFrame
-                    antiVoidPlatform.Anchored = true
-                    antiVoidPlatform.CanCollide = true
-                    antiVoidPlatform.Transparency = 1 -- Komplett Unsichtbar
-                    antiVoidPlatform.Material = Enum.Material.SmoothPlastic
-                    pcall(function() antiVoidPlatform.CollisionGroup = "ExosPlatformGroup" end)
-                    
-                    -- Teleport-Auslöser bei Berührung
-                    antiVoidPlatform.Touched:Connect(function(hit)
-                        local char = player.Character
-                        if char and hit:IsDescendantOf(char) then
-                            local rootPart = char:FindFirstChild("HumanoidRootPart")
-                            if rootPart then
-                                rootPart.CFrame = antiVoidTargetCFrame
-                            end
-                        end
-                    end)
-                    
-                    antiVoidPlatform.Parent = Workspace
-                end
-            else
-                if mapPlatform then mapPlatform:Destroy() mapPlatform = nil end
-                if antiVoidPlatform then antiVoidPlatform:Destroy() antiVoidPlatform = nil end
-            end
-            
-            if removeSharkEnabled then
-                local shark = Workspace:FindFirstChild("Shark")
-                if shark then shark:Destroy() end
-            end
-        end)
-    end
+task.spawn(function()
+
+    while task.wait(0.5) do
+
+        pcall(function()
+
+            if removeWaterLavaEnabled then
+
+                local parts = Workspace:FindFirstChild("Parts")
+
+                if parts then
+
+                    local kp = parts:FindFirstChild("KillPart")
+
+                    if kp then kp:Destroy() end
+
+                end
+
+                local folder = Workspace:FindFirstChild("Folder")
+
+                if folder then
+
+                    for _, item in pairs(folder:GetChildren()) do
+
+                        item:Destroy()
+
+                    end
+
+                end
+
+               
+
+                -- Normale Lauf-Plattform
+
+                if not mapPlatform or not mapPlatform.Parent then
+
+                    mapPlatform = Instance.new("Part")
+
+                    mapPlatform.Name = "GlobalSafePlatform"
+
+                    mapPlatform.Size = Vector3.new(8000, 2, 8000)
+
+                    mapPlatform.CFrame = platformCFrame
+
+                    mapPlatform.Anchored = true
+
+                    mapPlatform.CanCollide = true
+
+                    mapPlatform.Transparency = 0.5
+
+                    mapPlatform.Material = Enum.Material.SmoothPlastic
+
+                    pcall(function() mapPlatform.CollisionGroup = "ExosPlatformGroup" end)
+
+                    mapPlatform.Parent = Workspace
+
+                end
+
+
+                -- NEU: Unsichtbarer Anti-Void Part
+
+                if not antiVoidPlatform or not antiVoidPlatform.Parent then
+
+                    antiVoidPlatform = Instance.new("Part")
+
+                    antiVoidPlatform.Name = "ExosAntiVoid"
+
+                    antiVoidPlatform.Size = Vector3.new(8000, 2, 8000)
+
+                    antiVoidPlatform.CFrame = antiVoidPartCFrame
+
+                    antiVoidPlatform.Anchored = true
+
+                    antiVoidPlatform.CanCollide = true
+
+                    antiVoidPlatform.Transparency = 1 -- Komplett Unsichtbar
+
+                    antiVoidPlatform.Material = Enum.Material.SmoothPlastic
+
+                    pcall(function() antiVoidPlatform.CollisionGroup = "ExosPlatformGroup" end)
+
+                   
+
+                    -- Teleport-Auslöser bei Berührung
+
+                    antiVoidPlatform.Touched:Connect(function(hit)
+
+                        local char = player.Character
+
+                        if char and hit:IsDescendantOf(char) then
+
+                            local rootPart = char:FindFirstChild("HumanoidRootPart")
+
+                            if rootPart then
+
+                                rootPart.CFrame = antiVoidTargetCFrame
+
+                            end
+
+                        end
+
+                    end)
+
+                   
+
+                    antiVoidPlatform.Parent = Workspace
+
+                end
+
+            else
+
+                if mapPlatform then mapPlatform:Destroy() mapPlatform = nil end
+
+                if antiVoidPlatform then antiVoidPlatform:Destroy() antiVoidPlatform = nil end
+
+            end
+
+           
+
+            if removeSharkEnabled then
+
+                local shark = Workspace:FindFirstChild("Shark")
+
+                if shark then shark:Destroy() end
+
+            end
+
+        end)
+
+    end
+
 end)
+
 
 player.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid", 5)
-    if hum then lastHealth = hum.Health end
-    applyPlayerCollision(char)
-    char.DescendantAdded:Connect(function(desc)
-        if desc:IsA("BasePart") then pcall(function() desc.CollisionGroup = "ExosPlayerGroup" end) end
-    end)
+
+    local hum = char:WaitForChild("Humanoid", 5)
+
+    if hum then lastHealth = hum.Health end
+
+    applyPlayerCollision(char)
+
+    char.DescendantAdded:Connect(function(desc)
+
+        if desc:IsA("BasePart") then pcall(function() desc.CollisionGroup = "ExosPlayerGroup" end) end
+
+    end)
+
 end)
+
 if player.Character then applyPlayerCollision(player.Character) end
 
+
 -- UI ERSTELLUNG
+
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+
 screenGui.Name = "EXOSV1Beta"
+
 screenGui.ResetOnSpawn = false
 
+
 local mainFrame = Instance.new("Frame", screenGui)
+
 mainFrame.Size = UDim2.new(0, 540, 0, 320)
+
 mainFrame.Position = UDim2.new(0.5, -270, 0.5, -160)
+
 mainFrame.BackgroundColor3 = Color3.fromRGB(19, 19, 22)
+
 mainFrame.BorderSizePixel = 0
+
 mainFrame.Draggable = true
+
 mainFrame.Active = true
 
+
 local mainCorner = Instance.new("UICorner", mainFrame)
+
 mainCorner.CornerRadius = UDim.new(0, 9)
 
+
 local minBtn = Instance.new("TextButton", mainFrame)
+
 minBtn.Size = UDim2.new(0, 22, 0, 22)
+
 minBtn.Position = UDim2.new(1, -55, 0, 10)
+
 minBtn.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+
 minBtn.Text = "—"
+
 minBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+
 minBtn.Font = Enum.Font.GothamBold
+
 minBtn.TextSize = 12
+
 minBtn.BorderSizePixel = 0
+
 Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 5)
 
+
 local closeBtn = Instance.new("TextButton", mainFrame)
+
 closeBtn.Size = UDim2.new(0, 22, 0, 22)
+
 closeBtn.Position = UDim2.new(1, -28, 0, 10)
+
 closeBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+
 closeBtn.Text = "X"
+
 closeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+
 closeBtn.Font = Enum.Font.GothamBold
+
 closeBtn.TextSize = 12
+
 closeBtn.BorderSizePixel = 0
+
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 5)
 
+
 local openBtn = Instance.new("TextButton", screenGui)
+
 openBtn.Size = UDim2.new(0, 45, 0, 45)
+
 openBtn.Position = UDim2.new(0, 20, 1, -65)
+
 openBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 240)
+
 openBtn.Text = "E"
+
 openBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
 openBtn.Font = Enum.Font.GothamBold
+
 openBtn.TextSize = 18
+
 openBtn.Visible = false
+
 openBtn.BorderSizePixel = 0
+
 Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1, 0)
 
+
 minBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false openBtn.Visible = true end)
+
 openBtn.MouseButton1Click:Connect(function() mainFrame.Visible = true openBtn.Visible = false end)
+
 closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
+
 local leftPanel = Instance.new("Frame", mainFrame)
+
 leftPanel.Size = UDim2.new(0, 140, 1, 0)
+
 leftPanel.BackgroundColor3 = Color3.fromRGB(14, 14, 16)
+
 leftPanel.BorderSizePixel = 0
+
 Instance.new("UICorner", leftPanel).CornerRadius = UDim.new(0, 9)
 
+
 local patch = Instance.new("Frame", leftPanel)
+
 patch.Size = UDim2.new(0, 10, 1, 0)
+
 patch.Position = UDim2.new(1, -10, 0, 0)
+
 patch.BackgroundColor3 = leftPanel.BackgroundColor3
+
 patch.BorderSizePixel = 0
 
+
 local menuTitle = Instance.new("TextLabel", leftPanel)
+
 menuTitle.Size = UDim2.new(1, 0, 0, 40)
+
 menuTitle.Position = UDim2.new(0, 0, 0, 5)
+
 menuTitle.Text = "EXOS v1 beta"
+
 menuTitle.TextColor3 = Color3.fromRGB(0, 132, 255)
+
 menuTitle.Font = Enum.Font.GothamBold
+
 menuTitle.TextSize = 15
+
 menuTitle.BackgroundTransparency = 1
 
+
 local tabContainer = Instance.new("Frame", leftPanel)
+
 tabContainer.Size = UDim2.new(1, 0, 1, -50)
+
 tabContainer.Position = UDim2.new(0, 0, 0, 50)
+
 tabContainer.BackgroundTransparency = 1
+
 local tabListConfig = Instance.new("UIListLayout", tabContainer)
+
 tabListConfig.Padding = UDim.new(0, 4)
+
 tabListConfig.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
+
 local rightPanel = Instance.new("Frame", mainFrame)
+
 rightPanel.Size = UDim2.new(1, -155, 1, -40)
+
 rightPanel.Position = UDim2.new(0, 150, 0, 30)
+
 rightPanel.BackgroundTransparency = 1
 
+
 local pages = {}
+
 local tabButtons = {}
 
+
 local function createTab(name, order)
-    local btn = Instance.new("TextButton", tabContainer)
-    btn.Size = UDim2.new(0.92, 0, 0, 28)
-    btn.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
-    btn.Text = "  " .. name
-    btn.TextColor3 = Color3.fromRGB(160, 160, 165)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 11
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.BorderSizePixel = 0
-    btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    
-    local page
-    if name == "Settings" then
-        page = Instance.new("ScrollingFrame", rightPanel)
-        page.Size = UDim2.new(1, 0, 1, 0)
-        page.Position = UDim2.new(0, 30, 0, 0)
-        page.BackgroundTransparency = 1
-        page.CanvasSize = UDim2.new(0, 0, 0, 420)
-        page.ScrollBarThickness = 3
-        page.Visible = false
-    else
-        page = Instance.new("Frame", rightPanel)
-        page.Size = UDim2.new(1, 0, 1, 0)
-        page.Position = UDim2.new(0, 30, 0, 0)
-        page.BackgroundTransparency = 1
-        page.Visible = false
-    end
-    
-    pages[name] = page
-    tabButtons[name] = btn
+
+    local btn = Instance.new("TextButton", tabContainer)
+
+    btn.Size = UDim2.new(0.92, 0, 0, 28)
+
+    btn.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+
+    btn.Text = "  " .. name
+
+    btn.TextColor3 = Color3.fromRGB(160, 160, 165)
+
+    btn.Font = Enum.Font.GothamBold
+
+    btn.TextSize = 11
+
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+
+    btn.BorderSizePixel = 0
+
+    btn.LayoutOrder = order
+
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+
+   
+
+    local page
+
+    if name == "Settings" then
+
+        page = Instance.new("ScrollingFrame", rightPanel)
+
+        page.Size = UDim2.new(1, 0, 1, 0)
+
+        page.Position = UDim2.new(0, 30, 0, 0)
+
+        page.BackgroundTransparency = 1
+
+        page.CanvasSize = UDim2.new(0, 0, 0, 420)
+
+        page.ScrollBarThickness = 3
+
+        page.Visible = false
+
+    else
+
+        page = Instance.new("Frame", rightPanel)
+
+        page.Size = UDim2.new(1, 0, 1, 0)
+
+        page.Position = UDim2.new(0, 30, 0, 0)
+
+        page.BackgroundTransparency = 1
+
+        page.Visible = false
+
+    end
+
+   
+
+    pages[name] = page
+
+    tabButtons[name] = btn
+
 end
+
 
 createTab("Autofarm", 1)
+
 createTab("Fly", 2)
+
 createTab("Teleport", 3)
+
 createTab("Lava & Wasser", 4)
+
 createTab("Visuals", 5)
+
 createTab("Settings", 6)
 
+
 local currentTab = ""
+
 local function switchTab(tabName)
-    if currentTab == tabName then return end
-    currentTab = tabName
-    for name, page in pairs(pages) do
-        local btn = tabButtons[name]
-        if name == tabName then
-            page.Visible = true
-        else
-            page.Visible = false
-        end
-    end
+
+    if currentTab == tabName then return end
+
+    currentTab = tabName
+
+    for name, page in pairs(pages) do
+
+        local btn = tabButtons[name]
+
+        if name == tabName then
+
+            page.Visible = true
+
+        else
+
+            page.Visible = false
+
+        end
+
+    end
+
 end
+
 
 switchTab("Autofarm")
+
 tabButtons["Autofarm"].MouseButton1Click:Connect(function() switchTab("Autofarm") end)
+
 tabButtons["Fly"].MouseButton1Click:Connect(function() switchTab("Fly") end)
+
 tabButtons["Teleport"].MouseButton1Click:Connect(function() switchTab("Teleport") end)
+
 tabButtons["Lava & Wasser"].MouseButton1Click:Connect(function() switchTab("Lava & Wasser") end)
+
 tabButtons["Visuals"].MouseButton1Click:Connect(function() switchTab("Visuals") end)
+
 tabButtons["Settings"].MouseButton1Click:Connect(function() switchTab("Settings") end)
 
+
 -- AUTOFARM TAB
+
 local afPage = pages["Autofarm"]
+
 local statusLabel = Instance.new("TextLabel", afPage)
+
 statusLabel.Size = UDim2.new(1, 0, 0, 25)
+
 statusLabel.Position = UDim2.new(0, 0, 0, 5)
+
 statusLabel.Text = "Modus: Bereit..."
+
 statusLabel.TextColor3 = Color3.fromRGB(14, 142, 255)
+
 statusLabel.BackgroundTransparency = 1
+
 statusLabel.Font = Enum.Font.Gotham
+
 statusLabel.TextSize = 13
 
+
 local toggleBtn = Instance.new("TextButton", afPage)
+
 toggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+
 toggleBtn.Position = UDim2.new(0.1, 0, 0, 40)
+
 toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+
 toggleBtn.Text = "Autofarm: AUS"
+
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
 toggleBtn.Font = Enum.Font.GothamBold
+
 toggleBtn.TextSize = 15
+
 toggleBtn.BorderSizePixel = 0
+
 Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 6)
 
+
 local afSpeedLabel = Instance.new("TextLabel", afPage)
+
 afSpeedLabel.Size = UDim2.new(1, 0, 0, 20)
+
 afSpeedLabel.Position = UDim2.new(0, 10, 0, 95)
+
 afSpeedLabel.Text = "Autofarm Flug-Geschwindigkeit:"
+
 afSpeedLabel.TextColor3 = Color3.fromRGB(160, 160, 165)
+
 afSpeedLabel.Font = Enum.Font.GothamBold
+
 afSpeedLabel.TextSize = 13
+
 afSpeedLabel.BackgroundTransparency = 1
+
 afSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+
 local afSpeedInput = Instance.new("TextBox", afPage)
+
 afSpeedInput.Size = UDim2.new(0, 140, 0, 32)
+
 afSpeedInput.Position = UDim2.new(0, 10, 0, 120)
+
 afSpeedInput.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+
 afSpeedInput.Text = tostring(autofarmSpeed)
+
 afSpeedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+
 afSpeedInput.Font = Enum.Font.GothamBold
+
 afSpeedInput.TextSize = 13
+
 Instance.new("UICorner", afSpeedInput).CornerRadius = UDim.new(0, 5)
 
+
 afSpeedInput.FocusLost:Connect(function()
-    local num = tonumber(afSpeedInput.Text)
-    if num and num > 0 then autofarmSpeed = num else afSpeedInput.Text = tostring(autofarmSpeed) end
+
+    local num = tonumber(afSpeedInput.Text)
+
+    if num and num > 0 then autofarmSpeed = num else afSpeedInput.Text = tostring(autofarmSpeed) end
+
 end)
+
 
 -- FLY TAB
+
 local flyPage = pages["Fly"]
+
 local warningLabel = Instance.new("TextLabel", flyPage)
+
 warningLabel.Size = UDim2.new(1, 0, 0, 35)
+
 warningLabel.Position = UDim2.new(0, 0, 0, 10)
+
 warningLabel.Text = "⚡ Ultra Super-Fly Bypass V3"
+
 warningLabel.TextColor3 = Color3.fromRGB(0, 215, 125)
+
 warningLabel.Font = Enum.Font.GothamBold
+
 warningLabel.TextSize = 16
+
 warningLabel.BackgroundTransparency = 1
 
+
 local flyToggleBtn = Instance.new("TextButton", flyPage)
+
 flyToggleBtn.Size = UDim2.new(0.8, 0, 0, 45)
+
 flyToggleBtn.Position = UDim2.new(0.1, 0, 0, 70)
+
 flyToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+
 flyToggleBtn.Text = "Super-Fly: AUS"
+
 flyToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
 flyToggleBtn.Font = Enum.Font.GothamBold
+
 flyToggleBtn.TextSize = 16
+
 flyToggleBtn.BorderSizePixel = 0
+
 Instance.new("UICorner", flyToggleBtn).CornerRadius = UDim.new(0, 6)
 
+
 -- TELEPORT TAB
+
 local tpPage = pages["Teleport"]
+
 local tpGridFrame = Instance.new("Frame", tpPage)
+
 tpGridFrame.Size = UDim2.new(1, 0, 1, -20)
+
 tpGridFrame.Position = UDim2.new(0, 0, 0, 15)
+
 tpGridFrame.BackgroundTransparency = 1
 
+
 local tpGridLayout = Instance.new("UIGridLayout", tpGridFrame)
+
 tpGridLayout.CellSize = UDim2.new(0, 110, 0, 40)
+
 tpGridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
 
+
 local stageDisplayNames = {
-    {id = "1", name = "Stage 1 (+1)"},
-    {id = "3", name = "Stage 2 (+3)"},
-    {id = "10", name = "Stage 3 (+10)"},
-    {id = "20", name = "Stage 4 (+20)"},
-    {id = "50", name = "Stage 5 (+50)"}
+
+    {id = "1", name = "Stage 1 (+1)"},
+
+    {id = "3", name = "Stage 2 (+3)"},
+
+    {id = "10", name = "Stage 3 (+10)"},
+
+    {id = "20", name = "Stage 4 (+20)"},
+
+    {id = "50", name = "Stage 5 (+50)"}
+
 }
 
+
 for _, stageData in pairs(stageDisplayNames) do
-    local tButton = Instance.new("TextButton", tpGridFrame)
-    tButton.Text = stageData.name
-    tButton.Font = Enum.Font.GothamBold
-    tButton.TextSize = 12
-    tButton.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
-    tButton.TextColor3 = Color3.fromRGB(230, 230, 230)
-    tButton.BorderSizePixel = 0
-    Instance.new("UICorner", tButton).CornerRadius = UDim.new(0, 5)
-    
-    tButton.MouseButton1Click:Connect(function()
-        local exactCF = farmCFrames[stageData.id]
-        if exactCF then
-            task.spawn(function()
-                smoothMoveTo(exactCF, flySpeed)
-            end)
-        end
-    end)
+
+    local tButton = Instance.new("TextButton", tpGridFrame)
+
+    tButton.Text = stageData.name
+
+    tButton.Font = Enum.Font.GothamBold
+
+    tButton.TextSize = 12
+
+    tButton.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+
+    tButton.TextColor3 = Color3.fromRGB(230, 230, 230)
+
+    tButton.BorderSizePixel = 0
+
+    Instance.new("UICorner", tButton).CornerRadius = UDim.new(0, 5)
+
+   
+
+    tButton.MouseButton1Click:Connect(function()
+
+        local exactCF = farmCFrames[stageData.id]
+
+        if exactCF then
+
+            task.spawn(function()
+
+                smoothMoveTo(exactCF, flySpeed)
+
+            end)
+
+        end
+
+    end)
+
 end
+
 
 -- LAVA, WASSER & SHARK TAB
+
 local lwPage = pages["Lava & Wasser"]
+
 local lwListFrame = Instance.new("Frame", lwPage)
+
 lwListFrame.Size = UDim2.new(1, 0, 1, 0)
+
 lwListFrame.BackgroundTransparency = 1
 
+
 local lwLayout = Instance.new("UIListLayout", lwListFrame)
+
 lwLayout.Padding = UDim.new(0, 12)
+
 lwLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
+
 local waterToggleBtn = Instance.new("TextButton", lwListFrame)
+
 waterToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+
 waterToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+
 waterToggleBtn.Text = "Wasser & Lava entfernen: AUS"
+
 waterToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
 waterToggleBtn.Font = Enum.Font.GothamBold
+
 waterToggleBtn.TextSize = 14
+
 Instance.new("UICorner", waterToggleBtn).CornerRadius = UDim.new(0, 6)
 
+
 waterToggleBtn.MouseButton1Click:Connect(function()
-    removeWaterLavaEnabled = not removeWaterLavaEnabled
-    if removeWaterLavaEnabled then
-        waterToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
-        waterToggleBtn.Text = "Wasser & Lava entfernen: AN"
-    else
-        waterToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-        waterToggleBtn.Text = "Wasser & Lava entfernen: AUS"
-    end
+
+    removeWaterLavaEnabled = not removeWaterLavaEnabled
+
+    if removeWaterLavaEnabled then
+
+        waterToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
+
+        waterToggleBtn.Text = "Wasser & Lava entfernen: AN"
+
+    else
+
+        waterToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+
+        waterToggleBtn.Text = "Wasser & Lava entfernen: AUS"
+
+    end
+
 end)
+
 
 local sharkToggleBtn = Instance.new("TextButton", lwListFrame)
+
 sharkToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
-sharkToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40) 
-sharkToggleBtn.Text = "Shark entfernen: AUS" 
+
+sharkToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+
+sharkToggleBtn.Text = "Shark entfernen: AUS"
+
 sharkToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
 sharkToggleBtn.Font = Enum.Font.GothamBold
+
 sharkToggleBtn.TextSize = 14
+
 Instance.new("UICorner", sharkToggleBtn).CornerRadius = UDim.new(0, 6)
 
+
 sharkToggleBtn.MouseButton1Click:Connect(function()
-    removeSharkEnabled = not removeSharkEnabled
-    if removeSharkEnabled then
-        sharkToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
-        sharkToggleBtn.Text = "Shark entfernen: AN"
-    else
-        sharkToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-        sharkToggleBtn.Text = "Shark entfernen: AUS"
-    end
+
+    removeSharkEnabled = not removeSharkEnabled
+
+    if removeSharkEnabled then
+
+        sharkToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
+
+        sharkToggleBtn.Text = "Shark entfernen: AN"
+
+    else
+
+        sharkToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+
+        sharkToggleBtn.Text = "Shark entfernen: AUS"
+
+    end
+
 end)
+
 
 -- VISUALS TAB
+
 local visPage = pages["Visuals"]
+
 local comingSoonLabel = Instance.new("TextLabel", visPage)
+
 comingSoonLabel.Size = UDim2.new(1, 0, 1, 0)
+
 comingSoonLabel.BackgroundTransparency = 1
+
 comingSoonLabel.Text = "Coming soon!"
+
 comingSoonLabel.TextColor3 = Color3.fromRGB(160, 160, 165)
+
 comingSoonLabel.Font = Enum.Font.GothamBold
+
 comingSoonLabel.TextSize = 18
 
+
 -- SETTINGS TAB
+
 local setPage = pages["Settings"]
+
 local gridFrame = Instance.new("Frame", setPage)
+
 gridFrame.Size = UDim2.new(1, 0, 0, 130)
+
 gridFrame.Position = UDim2.new(0, 0, 0, 10)
+
 gridFrame.BackgroundTransparency = 1
 
+
 local gridLayout = Instance.new("UIGridLayout", gridFrame)
+
 gridLayout.CellSize = UDim2.new(0, 105, 0, 38)
+
 gridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
 
+
 local values = {"+1", "+3", "+10", "+20", "+50", "+100", "+150"}
+
 local settingButtons = {}
 
+
 for _, val in pairs(values) do
-    local sBtn = Instance.new("TextButton", gridFrame)
-    sBtn.Text = val
-    sBtn.Font = Enum.Font.GothamBold
-    sBtn.TextSize = 13
-    sBtn.BorderSizePixel = 0
-    Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0, 5)
-    
-    if string.find(val, selectedAmount) then
-        sBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 240)
-        sBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    else
-        sBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
-        sBtn.TextColor3 = Color3.fromRGB(140, 140, 145)
-    end
-    settingButtons[val] = sBtn
-    
-    sBtn.MouseButton1Click:Connect(function()
-        selectedAmount = string.match(val, "%d+")
-        if os.clock() > failsafeCooldown then
-            statusLabel.Text = "Modus: Fliege zu " .. val .. " Wins"
-        end
-        for k, button in pairs(settingButtons) do
-            if k == val then
-                button.BackgroundColor3 = Color3.fromRGB(0, 120, 240)
-                button.TextColor3 = Color3.fromRGB(255, 255, 255)
-            else
-                button.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
-                button.TextColor3 = Color3.fromRGB(140, 140, 145)
-            end
-        end
-    end)
+
+    local sBtn = Instance.new("TextButton", gridFrame)
+
+    sBtn.Text = val
+
+    sBtn.Font = Enum.Font.GothamBold
+
+    sBtn.TextSize = 13
+
+    sBtn.BorderSizePixel = 0
+
+    Instance.new("UICorner", sBtn).CornerRadius = UDim.new(0, 5)
+
+   
+
+    if string.find(val, selectedAmount) then
+
+        sBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 240)
+
+        sBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    else
+
+        sBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+
+        sBtn.TextColor3 = Color3.fromRGB(140, 140, 145)
+
+    end
+
+    settingButtons[val] = sBtn
+
+   
+
+    sBtn.MouseButton1Click:Connect(function()
+
+        selectedAmount = string.match(val, "%d+")
+
+        if os.clock() > failsafeCooldown then
+
+            statusLabel.Text = "Modus: Fliege zu " .. val .. " Wins"
+
+        end
+
+        for k, button in pairs(settingButtons) do
+
+            if k == val then
+
+                button.BackgroundColor3 = Color3.fromRGB(0, 120, 240)
+
+                button.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+            else
+
+                button.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+
+                button.TextColor3 = Color3.fromRGB(140, 140, 145)
+
+            end
+
+        end
+
+    end)
+
 end
+
 
 local flySpeedLabel = Instance.new("TextLabel", setPage)
+
 flySpeedLabel.Size = UDim2.new(1, 0, 0, 25)
+
 flySpeedLabel.Position = UDim2.new(0, 0, 0, 155)
+
 flySpeedLabel.Text = "Fly Speed einstellen:"
+
 flySpeedLabel.TextColor3 = Color3.fromRGB(160, 160, 165)
+
 flySpeedLabel.Font = Enum.Font.GothamBold
+
 flySpeedLabel.TextSize = 14
+
 flySpeedLabel.BackgroundTransparency = 1
+
 flySpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+
 local flySpeedInput = Instance.new("TextBox", setPage)
+
 flySpeedInput.Size = UDim2.new(0, 150, 0, 35)
+
 flySpeedInput.Position = UDim2.new(0, 0, 0, 185)
+
 flySpeedInput.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+
 flySpeedInput.Text = tostring(flySpeed)
+
 flySpeedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+
 flySpeedInput.Font = Enum.Font.GothamBold
+
 flySpeedInput.TextSize = 14
+
 Instance.new("UICorner", flySpeedInput).CornerRadius = UDim.new(0, 5)
 
+
 flySpeedInput.FocusLost:Connect(function()
-    local checkedNum = tonumber(flySpeedInput.Text)
-    if checkedNum and checkedNum > 0 then flySpeed = checkedNum else flySpeedInput.Text = tostring(flySpeed) end
+
+    local checkedNum = tonumber(flySpeedInput.Text)
+
+    if checkedNum and checkedNum > 0 then flySpeed = checkedNum else flySpeedInput.Text = tostring(flySpeed) end
+
 end)
+
 
 -- AUTOFARM LOOP
+
 local farmState = "Farming"
+
 local nextStateChange = os.clock() + 20
 
+
 task.spawn(function()
-    while true do
-        if autofarmEnabled then
-            local currentTime = os.clock()
-            
-            if currentTime < failsafeCooldown then
-                local remaining = math.ceil(failsafeCooldown - currentTime)
-                statusLabel.Text = "⚠️ SCHUTZ AKTIV! Pause für " .. remaining .. "s..."
-                task.wait(0.5)
-                continue
-            end
-            
-            local character = player.Character
-            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-            local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-            
-            if humanoid then
-                if humanoid.Health < lastHealth and humanoid.Health > 0 then
-                    failsafeCooldown = os.clock() + 30 
-                    lastHealth = humanoid.Health
-                    statusLabel.Text = "⚠️ Server-Schaden registriert! Blocke für 30s."
-                    isMoving = false
-                    task.wait(1)
-                    continue
-                end
-                lastHealth = humanoid.Health
-            end
-            
-            if currentTime >= nextStateChange then
-                if farmState == "Farming" then
-                    farmState = "Paused"
-                    nextStateChange = currentTime + 10 
-                    statusLabel.Text = "Modus: ⏸️ Pause für 10 Sekunden..."
-                    isMoving = false
-                else
-                    farmState = "Farming"
-                    nextStateChange = currentTime + 20 
-                    statusLabel.Text = "Modus: Fliege zu +" .. selectedAmount .. " Wins"
-                end
-            end
-            
-            if farmState == "Farming" and rootPart and not isMoving then
-                local targetCF = getTargetCFrame(selectedAmount)
-                if targetCF then
-                    task.spawn(function()
-                        if selectedAmount == "50" or selectedAmount == "100" or selectedAmount == "150" then
-                            smoothMoveTo(intermediateCF, autofarmSpeed, function()
-                                return autofarmEnabled and farmState == "Farming"
-                            end)
-                            
-                            if autofarmEnabled and farmState == "Farming" then
-                                if selectedAmount == "100" or selectedAmount == "150" then
-                                    local surfaceCF = CFrame.new(targetCF.X, 3.56175971, targetCF.Z)
-                                    smoothMoveTo(surfaceCF, autofarmSpeed, function()
-                                        return autofarmEnabled and farmState == "Farming"
-                                    end)
-                                    if autofarmEnabled and farmState == "Farming" then
-                                        smoothMoveTo(targetCF, 100, function()
-                                            return autofarmEnabled and farmState == "Farming"
-                                        end)
-                                    end
-                                else
-                                    smoothMoveTo(targetCF, autofarmSpeed, function()
-                                        return autofarmEnabled and farmState == "Farming"
-                                    end)
-                                end
-                            end
-                        else
-                            smoothMoveTo(targetCF, autofarmSpeed, function()
-                                return autofarmEnabled and farmState == "Farming"
-                            end)
-                        end
-                    end)
-                end
-            end
-        else
-            farmState = "Farming"
-            isMoving = false
-            if os.clock() > failsafeCooldown then
-                nextStateChange = os.clock() + 20
-            end
-        end
-        
-        task.wait(0.1) 
-    end
+
+    while true do
+
+        if autofarmEnabled then
+
+            local currentTime = os.clock()
+
+           
+
+            if currentTime < failsafeCooldown then
+
+                local remaining = math.ceil(failsafeCooldown - currentTime)
+
+                statusLabel.Text = "⚠️ SCHUTZ AKTIV! Pause für " .. remaining .. "s..."
+
+                task.wait(0.5)
+
+                continue
+
+            end
+
+           
+
+            local character = player.Character
+
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+            local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+
+           
+
+            if humanoid then
+
+                if humanoid.Health < lastHealth and humanoid.Health > 0 then
+
+                    failsafeCooldown = os.clock() + 30
+
+                    lastHealth = humanoid.Health
+
+                    statusLabel.Text = "⚠️ Server-Schaden registriert! Blocke für 30s."
+
+                    isMoving = false
+
+                    task.wait(1)
+
+                    continue
+
+                end
+
+                lastHealth = humanoid.Health
+
+            end
+
+           
+
+            if currentTime >= nextStateChange then
+
+                if farmState == "Farming" then
+
+                    farmState = "Paused"
+
+                    nextStateChange = currentTime + 10
+
+                    statusLabel.Text = "Modus: ⏸️ Pause für 10 Sekunden..."
+
+                    isMoving = false
+
+                else
+
+                    farmState = "Farming"
+
+                    nextStateChange = currentTime + 20
+
+                    statusLabel.Text = "Modus: Fliege zu +" .. selectedAmount .. " Wins"
+
+                end
+
+            end
+
+           
+
+            if farmState == "Farming" and rootPart and not isMoving then
+
+                local targetCF = getTargetCFrame(selectedAmount)
+
+                if targetCF then
+
+                    task.spawn(function()
+
+                        if selectedAmount == "50" or selectedAmount == "100" or selectedAmount == "150" then
+
+                            smoothMoveTo(intermediateCF, autofarmSpeed, function()
+
+                                return autofarmEnabled and farmState == "Farming"
+
+                            end)
+
+                           
+
+                            if autofarmEnabled and farmState == "Farming" then
+
+                                if selectedAmount == "100" or selectedAmount == "150" then
+
+                                    local surfaceCF = CFrame.new(targetCF.X, 3.56175971, targetCF.Z)
+
+                                    smoothMoveTo(surfaceCF, autofarmSpeed, function()
+
+                                        return autofarmEnabled and farmState == "Farming"
+
+                                    end)
+
+                                    if autofarmEnabled and farmState == "Farming" then
+
+                                        smoothMoveTo(targetCF, 100, function()
+
+                                            return autofarmEnabled and farmState == "Farming"
+
+                                        end)
+
+                                    end
+
+                                else
+
+                                    smoothMoveTo(targetCF, autofarmSpeed, function()
+
+                                        return autofarmEnabled and farmState == "Farming"
+
+                                    end)
+
+                                end
+
+                            end
+
+                        else
+
+                            smoothMoveTo(targetCF, autofarmSpeed, function()
+
+                                return autofarmEnabled and farmState == "Farming"
+
+                            end)
+
+                        end
+
+                    end)
+
+                end
+
+            end
+
+        else
+
+            farmState = "Farming"
+
+            isMoving = false
+
+            if os.clock() > failsafeCooldown then
+
+                nextStateChange = os.clock() + 20
+
+            end
+
+        end
+
+       
+
+        task.wait(0.1)
+
+    end
+
 end)
+
 
 toggleBtn.MouseButton1Click:Connect(function()
-    autofarmEnabled = not autofarmEnabled
-    if autofarmEnabled then
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
-        toggleBtn.Text = "Autofarm: AN"
-        if os.clock() > failsafeCooldown then statusLabel.Text = "Modus: Fliege zu +" .. selectedAmount .. " Wins" end
-    else
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-        toggleBtn.Text = "Autofarm: AUS"
-        isMoving = false
-        if os.clock() > failsafeCooldown then statusLabel.Text = "Modus: Bereit..." end
-    end
+
+    autofarmEnabled = not autofarmEnabled
+
+    if autofarmEnabled then
+
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
+
+        toggleBtn.Text = "Autofarm: AN"
+
+        if os.clock() > failsafeCooldown then statusLabel.Text = "Modus: Fliege zu +" .. selectedAmount .. " Wins" end
+
+    else
+
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+
+        toggleBtn.Text = "Autofarm: AUS"
+
+        isMoving = false
+
+        if os.clock() > failsafeCooldown then statusLabel.Text = "Modus: Bereit..." end
+
+    end
+
 end)
+
 
 -- MANUELLES FLIEGEN
+
 local flyConnection
+
 local function startFlying()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart")
-    local humanoid = character:WaitForChild("Humanoid")
-    local camera = Workspace.CurrentCamera
 
-    humanoid.PlatformStand = false 
+    local character = player.Character or player.CharacterAdded:Wait()
 
-    flyConnection = RunService.PreSimulation:Connect(function()
-        if not rootPart or not humanoid or not flyEnabled then return end
-        local cameraCFrame = camera.CFrame
-        local direction = Vector3.new(0, 0, 0)
+    local rootPart = character:WaitForChild("HumanoidRootPart")
 
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction = direction + cameraCFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction = direction - cameraCFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction = direction - cameraCFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction = direction + cameraCFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction = direction + Vector3.new(0, 1, 0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then direction = direction - Vector3.new(0, 1, 0) end
+    local humanoid = character:WaitForChild("Humanoid")
 
-        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+    local camera = Workspace.CurrentCamera
 
-        if direction.Magnitude > 0 then
-            rootPart.AssemblyLinearVelocity = direction.Unit * flySpeed * 2.5
-        else
-            rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        end
-    end)
+
+    humanoid.PlatformStand = false
+
+
+    flyConnection = RunService.PreSimulation:Connect(function()
+
+        if not rootPart or not humanoid or not flyEnabled then return end
+
+        local cameraCFrame = camera.CFrame
+
+        local direction = Vector3.new(0, 0, 0)
+
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction = direction + cameraCFrame.LookVector end
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction = direction - cameraCFrame.LookVector end
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction = direction - cameraCFrame.RightVector end
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction = direction + cameraCFrame.RightVector end
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction = direction + Vector3.new(0, 1, 0) end
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then direction = direction - Vector3.new(0, 1, 0) end
+
+
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+
+
+        if direction.Magnitude > 0 then
+
+            rootPart.AssemblyLinearVelocity = direction.Unit * flySpeed * 2.5
+
+        else
+
+            rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+        end
+
+    end)
+
 end
+
 
 local function stopFlying()
-    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-    local character = player.Character
-    if character then
-        local rootPart = character:FindFirstChild("HumanoidRootPart")
-        if rootPart then rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0) end
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then 
-            humanoid.PlatformStand = false 
-            humanoid:ChangeState(Enum.HumanoidStateType.Running)
-        end
-    end
+
+    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+
+    local character = player.Character
+
+    if character then
+
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+
+        if rootPart then rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0) end
+
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+        if humanoid then
+
+            humanoid.PlatformStand = false
+
+            humanoid:ChangeState(Enum.HumanoidStateType.Running)
+
+        end
+
+    end
+
 end
 
+
 flyToggleBtn.MouseButton1Click:Connect(function()
-    flyEnabled = not flyEnabled
-    if flyEnabled then
-        flyToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
-        flyToggleBtn.Text = "Super-Fly: AN"
-        startFlying()
-    else
-        flyToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-        flyToggleBtn.Text = "Super-Fly: AUS"
-        stopFlying()
-    end
-end)
+
+    flyEnabled = not flyEnabled
+
+    if flyEnabled then
+
+        flyToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
+
+        flyToggleBtn.Text = "Super-Fly: AN"
+
+        startFlying()
+
+    else
+
+        flyToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+
+        flyToggleBtn.Text = "Super-Fly: AUS"
+
+        stopFlying()
+
+    end
+
+end) 
